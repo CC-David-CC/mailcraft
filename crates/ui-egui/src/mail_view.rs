@@ -114,11 +114,7 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
     drag_ghost(ui);
     let compact = cfg!(target_arch = "wasm32") && ui.available_width() < 520.0;
     if compact && app.compact_folders_open {
-        let folder = app.session.view.folder;
         crate::nav::folder_pane(app, ui, true);
-        if folder != app.session.view.folder {
-            app.compact_folders_open = false;
-        }
         return;
     }
     if !compact && app.session.view.folder_pane {
@@ -146,12 +142,8 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
         // The splitter under the list: egui names a panel's resize handle after the panel.
         let panel = if compact { "compact_message_list" } else { "message_list" };
         let splitter = ui.scope_id().with_salt(egui::IdSalt::new(panel)).with("__resize");
-        let shown = egui::Panel::top(panel)
-            .default_size(h.min(max))
-            .size_range(120.0..=max)
-            .resizable(!compact)
-            .frame(frame)
-            .show(ui, |ui| list(app, ui));
+        let shown =
+            egui::Panel::top(panel).default_size(h.min(max)).size_range(120.0..=max).resizable(!compact).frame(frame).show(ui, |ui| list(app, ui));
         app.hit.add("messageList", 0, shown.response.rect);
         // Only the owner's resize of the splitter changes the height kept, by a drag (its last frame
         // included) or through assistive technology: a window too short for it lays the list out

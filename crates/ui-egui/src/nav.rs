@@ -677,7 +677,9 @@ fn folder_row(app: &mut MailApp, ui: &mut Ui, f: &Folder, depth: usize, has_chil
     );
     if resp.clicked() {
         ui.data_mut(|d| d.insert_temp(egui::Id::unique("folder_picked_in_list"), key == "tree"));
-        let _ = app.run("folder.select", json!({"id": f.id}));
+        if app.run("folder.select", json!({"id": f.id})).is_ok() {
+            app.compact_folders_open = false;
+        }
     }
     // Messages dragged out of the list are filed in the folder they are let go over.
     if let Some(drag) = resp.dnd_hover_payload::<crate::mail_view::MessageDrag>() {
@@ -854,7 +856,9 @@ fn gmail_row(app: &mut MailApp, ui: &mut Ui, inbox: Id, depth: usize, category: 
     let said = if unread > 0 { format!("{name}, {}", tln!(unread, "{n} unread", "{n} unread")) } else { name.to_string() };
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, selected, &said));
     if resp.clicked() {
-        let _ = app.run("folder.select", json!({"id": inbox, "gmail": category.code()}));
+        if app.run("folder.select", json!({"id": inbox, "gmail": category.code()})).is_ok() {
+            app.compact_folders_open = false;
+        }
     }
     crate::gmail_move::drop_target(app, ui, &resp, row, category);
 }
