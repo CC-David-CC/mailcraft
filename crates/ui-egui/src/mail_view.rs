@@ -130,10 +130,8 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
     let composing = crate::windows::compose_window::pane_compose(app).is_some_and(|c| app.session.compose_id() == Some(c));
     let preferred_pane = app.session.view.reading_pane;
     // After the folder pane, keep enough width for both the list and the message.
-    let stack_for_width = cfg!(target_arch = "wasm32")
-        && ui.available_width() < 560.0
-        && preferred_pane != Pane::Bottom
-        && (composing || preferred_pane != Pane::Off);
+    let stack_for_width =
+        cfg!(target_arch = "wasm32") && ui.available_width() < 560.0 && preferred_pane != Pane::Bottom && (composing || preferred_pane != Pane::Off);
     let pane = if stack_for_width { Pane::Bottom } else { preferred_pane };
     // The list takes the whole width when the reading pane is off, unless a message is being written.
     if pane == Pane::Off && !composing {
