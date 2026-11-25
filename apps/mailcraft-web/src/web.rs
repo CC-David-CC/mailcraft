@@ -193,12 +193,29 @@ impl eframe::App for WebShell {
     }
 
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
+        if let Some(theme) = embedding_theme() {
+            raw.system_theme = Some(theme);
+        }
         self.app.raw_input_hook(raw);
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.app.ui(ui);
         open_links(ui.ctx());
+    }
+}
+
+/// A same-origin host can set an explicit appearance on the iframe. Browser media
+/// preferences alone can differ from the host's chosen appearance.
+fn embedding_theme() -> Option<egui::Theme> {
+    let frame = web_sys::window()?.frame_element().ok()??;
+    let host = frame.owner_document()?.default_view()?;
+    let style = host.get_computed_style(&frame).ok()??;
+    let scheme = style.get_property_value("color-scheme").ok()?;
+    match scheme.trim() {
+        "dark" => Some(egui::Theme::Dark),
+        "light" => Some(egui::Theme::Light),
+        _ => None,
     }
 }
 

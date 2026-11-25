@@ -773,7 +773,7 @@ fn a_shared_mailboxs_folder_among_the_favorites_says_whose_it_is() {
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
     let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
-        crate::nav::folder_pane(&mut app, ui);
+        crate::nav::folder_pane(&mut app, ui, false);
     });
     out.textures_delta.clear();
     no_imap();

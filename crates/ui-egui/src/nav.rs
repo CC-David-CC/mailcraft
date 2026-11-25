@@ -983,7 +983,7 @@ fn sheet(painter: &Painter, r: Rect, t: &Tokens) {
 }
 
 /// The top of the pane: the button that puts the pane away.
-fn pane_top(app: &mut MailApp, ui: &mut Ui, t: &Tokens) {
+fn pane_top(app: &mut MailApp, ui: &mut Ui, t: &Tokens, compact: bool) {
     // The line along the pane's top, and a little air under it.
     ui.add_space(4.0);
     let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());
@@ -996,13 +996,17 @@ fn pane_top(app: &mut MailApp, ui: &mut Ui, t: &Tokens) {
     ui.painter().add(Shape::line(vec![pos2(c.x + 1.75, c.y - 3.4), pos2(c.x - 1.65, c.y), pos2(c.x + 1.75, c.y + 3.4)], Stroke::new(1.5, t.text)));
     app.hit.add("folderPaneHide", 0, button);
     if resp.on_hover_text(tl!("Hide the folder pane")).clicked() {
-        let _ = app.run("view.folderPane", json!({"value": false}));
+        if compact {
+            app.compact_folders_open = false;
+        } else {
+            let _ = app.run("view.folderPane", json!({"value": false}));
+        }
     }
 }
 
 /// What is left of the folder pane while it is hidden: a narrow strip with the button that
 /// brings it back, where the button that hid it was.
-pub fn folder_pane_strip(app: &mut MailApp, ui: &mut Ui) {
+pub fn folder_pane_strip(app: &mut MailApp, ui: &mut Ui, compact: bool) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::left("folders_hidden").exact_size(STRIP_W).resizable(false).frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
         sheet(ui.painter(), ui.max_rect(), &t);
@@ -1019,18 +1023,24 @@ pub fn folder_pane_strip(app: &mut MailApp, ui: &mut Ui) {
             .add(Shape::line(vec![pos2(c.x - 1.75, c.y - 3.4), pos2(c.x + 1.65, c.y), pos2(c.x - 1.75, c.y + 3.4)], Stroke::new(1.5, t.text)));
         app.hit.add("folderPaneShow", 0, button);
         if resp.on_hover_text(tl!("Show the folder pane")).clicked() {
-            let _ = app.run("view.folderPane", json!({"value": true}));
+            if compact {
+                app.compact_folders_open = true;
+            } else {
+                let _ = app.run("view.folderPane", json!({"value": true}));
+            }
         }
     });
 }
 
 /// The folder pane: favourites, then every account's folders.
-pub fn folder_pane(app: &mut MailApp, ui: &mut Ui) {
+pub fn folder_pane(app: &mut MailApp, ui: &mut Ui, compact: bool) {
     let t = Tokens::get(ui.ctx());
-    let panel = egui::Panel::left("folders")
-        .default_size(app.ui.folder_pane_width)
-        .size_range(160.0..=420.0)
-        .resizable(true)
+    let panel = if compact {
+        egui::Panel::left("compact_folders").exact_size(ui.available_width()).resizable(false)
+    } else {
+        egui::Panel::left("folders").default_size(app.ui.folder_pane_width).size_range(160.0..=420.0).resizable(true)
+    };
+    let panel = panel
         // In the dark the pane and the list beside it are told apart by their own colours; on a
         // light window they are nearly one white, and a line parts them.
         .show_separator_line(t.pane_rule)
@@ -1040,7 +1050,7 @@ pub fn folder_pane(app: &mut MailApp, ui: &mut Ui) {
         sheet(ui.painter(), ui.max_rect(), &t);
         module_foot(app, ui);
         ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
-        pane_top(app, ui, &t);
+        pane_top(app, ui, &t, compact);
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
             // (Counted once per change to the mailbox, not at every frame: `Session::folder_counts`.)
             let counts = app.session.folder_counts();
@@ -1144,7 +1154,9 @@ pub fn folder_pane(app: &mut MailApp, ui: &mut Ui) {
         });
         drag_ghost(app, ui);
     });
-    app.ui.folder_pane_width = shown.response.rect.width();
+    if !compact {
+        app.ui.folder_pane_width = shown.response.rect.width();
+    }
 }
 
 /// What the window calls a folder: in English always its own name; in another interface language,

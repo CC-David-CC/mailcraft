@@ -209,7 +209,7 @@ fn two_accounts_inboxes_among_the_favorites_are_told_apart() {
     }
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let mut out = ctx.run_ui(egui::RawInput::default(), |ui| folder_pane(&mut app, ui));
+    let mut out = ctx.run_ui(egui::RawInput::default(), |ui| folder_pane(&mut app, ui, false));
     out.textures_delta.clear();
     let texts: Vec<String> = out
         .shapes

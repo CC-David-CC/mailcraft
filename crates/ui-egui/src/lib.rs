@@ -1621,6 +1621,8 @@ pub struct MailApp {
     /// The owner's own keys and the work on them under way (#30, File › Options › Security).
     pub(crate) security: security::State,
     pub ui: UiState,
+    /// Whether the temporary folder picker is open in a narrow browser window.
+    pub(crate) compact_folders_open: bool,
     pub services: Services,
     pub dialog: Option<dialogs::Dialog>,
     /// The contacts picked together in the People list with Ctrl (⌘ on a Mac) and a click, the
@@ -2017,6 +2019,7 @@ impl MailApp {
             row_checks_wanted: false,
             security: security::State::default(),
             ui: UiState::default(),
+            compact_folders_open: false,
             attachment_selection: None,
             attachment_preview: None,
             pending_attachment_preview: None,

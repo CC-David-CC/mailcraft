@@ -112,15 +112,28 @@ fn drag_ghost(ui: &Ui) {
 pub fn show(app: &mut MailApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     drag_ghost(ui);
-    if app.session.view.folder_pane {
-        crate::nav::folder_pane(app, ui);
+    let compact = cfg!(target_arch = "wasm32") && ui.available_width() < 520.0;
+    if compact && app.compact_folders_open {
+        let folder = app.session.view.folder;
+        crate::nav::folder_pane(app, ui, true);
+        if folder != app.session.view.folder {
+            app.compact_folders_open = false;
+        }
+        return;
+    }
+    if !compact && app.session.view.folder_pane {
+        crate::nav::folder_pane(app, ui, false);
     } else {
-        // Hidden: a narrow strip stays, with the button that brings the pane back.
-        crate::nav::folder_pane_strip(app, ui);
+        // Keep the folder button available beside the inbox, including at phone widths.
+        crate::nav::folder_pane_strip(app, ui, compact);
+    }
+    if !compact {
+        app.compact_folders_open = false;
     }
     // The reading pane's message being written (#286): one in a window of its own isn't here.
     let composing = crate::windows::compose_window::pane_compose(app).is_some_and(|c| app.session.compose_id() == Some(c));
-    let pane = app.session.view.reading_pane;
+    let preferred_pane = app.session.view.reading_pane;
+    let pane = if compact && (composing || preferred_pane != Pane::Off) { Pane::Bottom } else { preferred_pane };
     // The list takes the whole width when the reading pane is off, unless a message is being written.
     if pane == Pane::Off && !composing {
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.surface)).show(ui, |ui| list(app, ui));
@@ -131,11 +144,12 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
         let max = (ui.available_height() - 140.0).max(160.0);
         let h = if app.ui.list_height > 0.0 { app.ui.list_height } else { (ui.available_height() * 0.42).clamp(140.0, 520.0) };
         // The splitter under the list: egui names a panel's resize handle after the panel.
-        let splitter = ui.scope_id().with_salt(egui::IdSalt::new("message_list")).with("__resize");
-        let shown = egui::Panel::top("message_list")
+        let panel = if compact { "compact_message_list" } else { "message_list" };
+        let splitter = ui.scope_id().with_salt(egui::IdSalt::new(panel)).with("__resize");
+        let shown = egui::Panel::top(panel)
             .default_size(h.min(max))
             .size_range(120.0..=max)
-            .resizable(true)
+            .resizable(!compact)
             .frame(frame)
             .show(ui, |ui| list(app, ui));
         app.hit.add("messageList", 0, shown.response.rect);
@@ -143,7 +157,7 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
         // included) or through assistive technology: a window too short for it lays the list out
         // shorter, and that isn't kept (#1372).
         let dragged = ui.ctx().read_response(splitter).is_some_and(|r| r.dragged() || r.drag_stopped());
-        if dragged || splitter_asked(ui, splitter) {
+        if !compact && (dragged || splitter_asked(ui, splitter)) {
             app.ui.list_height = shown.response.rect.height();
         }
     } else {
