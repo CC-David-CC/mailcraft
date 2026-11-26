@@ -503,8 +503,13 @@ pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
                         st(ui, &tln!(open, "{n} open task", "{n} open tasks"), t.text_dim);
                     }
                 }
-                if let Some((msg, at)) = &app.status_msg
-                    && crate::now_ms() - at < 6000.0
+                let sync_problems = app.has_sync_problems();
+                let status = app.status_msg.as_ref().filter(|(_, at)| crate::now_ms() - at < 6000.0);
+                let narrow = full_w < 520.0;
+                // A narrow bar has room for one status. Keep progress and errors actionable.
+                let status_only = narrow && status.is_some() && !(sync_problems || app.syncing() || app.signing_in() || app.approving());
+                if (!narrow || status_only)
+                    && let Some((msg, _)) = status
                 {
                     let shown = st_most(ui, msg, t.accent_text, full_w * STATUS_MSG_SHARE);
                     app.hit.add("statusMessage", 0, shown.rect);
@@ -567,14 +572,14 @@ pub fn status_bar(app: &mut MailApp, ui: &mut Ui) {
                     crate::auto_replies::status_item(app, ui, &t, STATUS_TEXT);
                     // The last Send/Receive had problems: one click shows them, in Send/Receive
                     // Progress under their accounts.
-                    if app.has_sync_problems() {
+                    if sync_problems {
                         let link = ui.link(egui::RichText::new(tl!("Send/Receive problems")).size(STATUS_TEXT).color(t.red));
                         app.hit.add("syncProblemsLink", 0, link.rect);
                         if link.clicked() {
                             let _ = app.run("ui.dialog", json!({"name": "syncProblems"}));
                         }
                     }
-                    let shown_sync = sync_shown(app);
+                    let shown_sync = if status_only { SyncShown::Nothing } else { sync_shown(app) };
                     if shown_sync != SyncShown::Nothing {
                         // Waiting for the owner in the browser (or for an administrator on
                         // Microsoft's approval page) can be given up from here.

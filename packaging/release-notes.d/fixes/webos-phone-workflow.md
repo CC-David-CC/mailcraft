@@ -1,0 +1,1 @@
+- MailCraft opens on WebGL2 devices with smaller texture limits, gives the phone composer room above the keyboard, and keeps progress and delivery errors readable in narrow windows. [WebOS qualification](https://github.com/CC-David-CC/mailcraft/blob/webos/phone-mailbox-workflow/docs/webos-qa/PHONE.md)

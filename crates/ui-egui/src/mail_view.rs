@@ -128,6 +128,8 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
     }
     // The reading pane's message being written (#286): one in a window of its own isn't here.
     let composing = crate::windows::compose_window::pane_compose(app).is_some_and(|c| app.session.compose_id() == Some(c));
+    // Give the draft the remaining height on a phone, including when its keyboard is open.
+    let show_list = !compact || !composing;
     let preferred_pane = app.session.view.reading_pane;
     // After the folder pane, keep enough width for both the list and the message.
     let stack_for_width =
@@ -139,7 +141,7 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
         return;
     }
     let frame = egui::Frame::NONE.fill(t.surface).stroke(Stroke::new(1.0, t.border));
-    if pane == Pane::Bottom {
+    if show_list && pane == Pane::Bottom {
         let max = (ui.available_height() - 140.0).max(160.0);
         let h = if app.ui.list_height > 0.0 { app.ui.list_height } else { (ui.available_height() * 0.42).clamp(140.0, 520.0) };
         // The splitter under the list: egui names a panel's resize handle after the panel.
@@ -156,7 +158,7 @@ pub fn show(app: &mut MailApp, ui: &mut Ui) {
         if !adaptive && (dragged || splitter_asked(ui, splitter)) {
             app.ui.list_height = shown.response.rect.height();
         }
-    } else {
+    } else if show_list {
         let max = (ui.available_width() - 260.0).max(260.0);
         let shown = egui::Panel::left("message_list")
             .default_size(app.ui.list_width.min(max))

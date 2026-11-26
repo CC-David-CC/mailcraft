@@ -855,10 +855,8 @@ fn gmail_row(app: &mut MailApp, ui: &mut Ui, inbox: Id, depth: usize, category: 
     // Read out as its name and how many of its messages are unread.
     let said = if unread > 0 { format!("{name}, {}", tln!(unread, "{n} unread", "{n} unread")) } else { name.to_string() };
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, selected, &said));
-    if resp.clicked() {
-        if app.run("folder.select", json!({"id": inbox, "gmail": category.code()})).is_ok() {
-            app.compact_folders_open = false;
-        }
+    if resp.clicked() && app.run("folder.select", json!({"id": inbox, "gmail": category.code()})).is_ok() {
+        app.compact_folders_open = false;
     }
     crate::gmail_move::drop_target(app, ui, &resp, row, category);
 }

@@ -35,10 +35,19 @@ pub fn start() {
         // The JMAP accounts of the page that serves MailCraft, when it names some (`jmap.rs`).
         let hook = crate::jmap::Hook::read().map(Rc::new);
         let mut options = eframe::WebOptions::default();
-        if query().contains("webgl")
-            && let eframe::egui_wgpu::WgpuSetup::CreateNew(create) = &mut options.wgpu_options.wgpu_setup
-        {
-            create.instance_descriptor.backends = eframe::wgpu::Backends::GL;
+        if let eframe::egui_wgpu::WgpuSetup::CreateNew(create) = &mut options.wgpu_options.wgpu_setup {
+            if page::has_flag(&query(), "webgl") {
+                create.instance_descriptor.backends = eframe::wgpu::Backends::GL;
+            }
+            // egui requests an 8192-pixel texture limit for large displays. Some WebGL2
+            // adapters support smaller textures and reject the entire device request.
+            let device_descriptor = create.device_descriptor.clone();
+            create.device_descriptor = std::sync::Arc::new(move |adapter| {
+                let mut descriptor = device_descriptor(adapter);
+                let requested = &mut descriptor.required_limits.max_texture_dimension_2d;
+                *requested = (*requested).min(adapter.limits().max_texture_dimension_2d);
+                descriptor
+            });
         }
         let result = eframe::WebRunner::new()
             .start(
